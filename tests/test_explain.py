@@ -618,3 +618,132 @@ class TestExplainPackInfo:
 
         assert not result.is_valid
         assert any("packs" in e.what.lower() and "list" in e.what.lower() for e in result.errors)
+
+
+class TestExplainResolutionPolicy:
+    """Tests for initial_state_resolution policy (v0.4.0+)."""
+
+    def test_default_policy_is_packs_first(self):
+        """Default resolution policy is packs-first."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "rules": [],
+        }
+
+        result = explain(config)
+
+        assert result.is_valid
+        assert result.initial_state_resolution == ["packs", "builtin"]
+
+    def test_custom_policy_builtin_first(self):
+        """Config can specify builtin-first policy."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "initial_state_resolution": ["builtin", "packs"],
+            "rules": [],
+        }
+
+        result = explain(config)
+
+        assert result.is_valid
+        assert result.initial_state_resolution == ["builtin", "packs"]
+
+    def test_custom_policy_packs_first(self):
+        """Config can explicitly specify packs-first policy."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "initial_state_resolution": ["packs", "builtin"],
+            "rules": [],
+        }
+
+        result = explain(config)
+
+        assert result.is_valid
+        assert result.initial_state_resolution == ["packs", "builtin"]
+
+    def test_format_shows_resolution_policy(self):
+        """format() displays the resolution policy."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "rules": [],
+        }
+
+        result = explain(config)
+        formatted = result.format()
+
+        assert "Resolution policy:" in formatted
+        assert "packs → builtin" in formatted
+
+    def test_format_shows_custom_policy(self):
+        """format() shows custom resolution policy."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "initial_state_resolution": ["builtin", "packs"],
+            "rules": [],
+        }
+
+        result = explain(config)
+        formatted = result.format()
+
+        assert "builtin → packs" in formatted
+
+    def test_invalid_policy_type_errors(self):
+        """Non-list policy value is an error."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "initial_state_resolution": "packs",  # wrong type
+            "rules": [],
+        }
+
+        result = explain(config)
+
+        assert not result.is_valid
+        assert any("initial_state_resolution" in e.what for e in result.errors)
+
+    def test_invalid_policy_length_errors(self):
+        """Policy with wrong number of elements is an error."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "initial_state_resolution": ["packs"],  # too short
+            "rules": [],
+        }
+
+        result = explain(config)
+
+        assert not result.is_valid
+        assert any("2 elements" in e.what for e in result.errors)
+
+    def test_invalid_policy_values_errors(self):
+        """Policy with invalid source names is an error."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "initial_state_resolution": ["custom", "builtin"],  # "custom" invalid
+            "rules": [],
+        }
+
+        result = explain(config)
+
+        assert not result.is_valid
+        assert any("Invalid resolution source" in e.what for e in result.errors)
+
+    def test_duplicate_policy_values_errors(self):
+        """Policy with duplicate sources is an error."""
+        config = {
+            "name": "test_component",
+            "initial_state": "InitialState",
+            "initial_state_resolution": ["packs", "packs"],  # duplicate
+            "rules": [],
+        }
+
+        result = explain(config)
+
+        assert not result.is_valid
+        # Should error because set doesn't match expected sources

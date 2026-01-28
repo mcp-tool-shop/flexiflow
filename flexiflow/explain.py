@@ -84,6 +84,13 @@ class ConfigExplanation:
     state_providers: Dict[str, str] = field(default_factory=dict)  # state_key -> pack_name
     pack_order: List[str] = field(default_factory=list)  # pack names in resolution order
 
+    # Resolution policy (v0.4.0+)
+    # Controls where initial_state names are looked up first
+    # Default: ["packs", "builtin"] - pack states take precedence
+    initial_state_resolution: List[str] = field(
+        default_factory=lambda: ["packs", "builtin"]
+    )
+
     # Diagnostics
     warnings: List[Diagnostic] = field(default_factory=list)
     errors: List[Diagnostic] = field(default_factory=list)
@@ -126,6 +133,11 @@ class ConfigExplanation:
             if self.pack_order:
                 lines.append(f"Pack order: {' → '.join(self.pack_order)}")
                 lines.append("")
+
+        # Resolution policy
+        policy_str = " → ".join(self.initial_state_resolution)
+        lines.append(f"Resolution policy: {policy_str}")
+        lines.append("")
 
         # States (sorted for deterministic output) - legacy section
         lines.append("States:")
@@ -292,6 +304,73 @@ def _populate_pack_info(
 
     # Resolution order is pack list order (first pack wins for conflicts)
     result.pack_order = [p.name for p in loaded_packs]
+
+
+# Valid resolution policy values
+VALID_RESOLUTION_SOURCES = {"packs", "builtin"}
+
+
+def _parse_resolution_policy(
+    result: ConfigExplanation,
+    data: Dict[str, Any],
+) -> None:
+    """Parse and validate initial_state_resolution config field.
+
+    Valid values:
+        - ["packs", "builtin"] (default): pack states take precedence
+        - ["builtin", "packs"]: builtin states take precedence
+
+    Sets result.initial_state_resolution to the parsed policy.
+    """
+    policy = data.get("initial_state_resolution")
+
+    # No policy specified - use default
+    if policy is None:
+        return  # Default already set in dataclass
+
+    # Validate type
+    if not isinstance(policy, list):
+        result.errors.append(
+            Diagnostic(
+                level="error",
+                what="Field 'initial_state_resolution' must be a list",
+                why=f"Got {type(policy).__name__}.",
+                fix='Use format: initial_state_resolution: ["packs", "builtin"]',
+                context={"path": result.config_path},
+            )
+        )
+        return
+
+    # Validate contents
+    if len(policy) != 2:
+        result.errors.append(
+            Diagnostic(
+                level="error",
+                what="Field 'initial_state_resolution' must have exactly 2 elements",
+                why=f"Got {len(policy)} elements.",
+                fix='Use: ["packs", "builtin"] or ["builtin", "packs"]',
+                context={"path": result.config_path, "policy": policy},
+            )
+        )
+        return
+
+    # Validate each element
+    policy_set = set(policy)
+    if policy_set != VALID_RESOLUTION_SOURCES:
+        invalid = policy_set - VALID_RESOLUTION_SOURCES
+        result.errors.append(
+            Diagnostic(
+                level="error",
+                what=f"Invalid resolution source(s): {invalid}",
+                why="Only 'packs' and 'builtin' are valid resolution sources.",
+                fix='Use: ["packs", "builtin"] or ["builtin", "packs"]',
+                context={"path": result.config_path, "policy": policy},
+            )
+        )
+        return
+
+    # Valid policy - set it
+    result.initial_state_resolution = policy
 
 
 def explain(config: Union[str, Path, Dict[str, Any]]) -> ConfigExplanation:
@@ -492,6 +571,9 @@ def _validate_config_data(
     # Populate pack info (v0.4.0+)
     # Use load_packs to normalize states/packs into StatePack list
     _populate_pack_info(result, data, states_mapping)
+
+    # Parse resolution policy (v0.4.0+)
+    _parse_resolution_policy(result, data)
 
     # Validate initial_state
     initial_state = data.get("initial_state", "InitialState")

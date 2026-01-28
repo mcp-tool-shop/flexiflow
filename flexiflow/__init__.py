@@ -42,6 +42,7 @@ from .explain import ConfigExplanation, Diagnostic, explain
 from .pack_loader import collect_provided_keys, load_packs
 from .state_machine import DEFAULT_REGISTRY, State, StateRegistry, StateMachine
 from .statepack import MappingPack, StateSpec, StatePack, TransitionSpec
+from .visualize import visualize
 
 __all__ = [
     # Core
@@ -69,6 +70,8 @@ __all__ = [
     "explain",
     "ConfigExplanation",
     "Diagnostic",
+    # Visualization
+    "visualize",
 ]
 
 # Internal imports available but not in __all__:

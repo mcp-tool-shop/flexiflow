@@ -163,3 +163,31 @@ initial_state: "mypkg.states:MyInitialState"
 ```
 
 The class must be a `State` subclass. It will be auto-registered under its class name.
+
+## Persistence
+
+Save and restore component state with the JSON persistence adapter:
+
+```python
+from flexiflow.extras import save_component, load_snapshot, restore_component
+
+# Save current state
+save_component(component, "state.json", metadata={"version": "1.0"})
+
+# Later: restore from file
+snapshot = load_snapshot("state.json")
+restored = restore_component(snapshot, engine)
+```
+
+### What's persisted
+
+- Component name
+- Current state class name
+- Rules list
+- Optional user metadata
+
+### What's NOT persisted
+
+- Event subscriptions
+- Handler functions
+- Logger/event bus references (re-injected on restore)

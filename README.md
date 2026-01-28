@@ -329,3 +329,74 @@ await engine.event_bus.subscribe("state.changed", "persister", on_state_changed)
 | Retention | N/A | `prune_snapshots_sqlite()` |
 | Restore | `load_snapshot()` | `load_latest_snapshot_sqlite()` |
 | Best for | Dev/debugging | Production |
+
+## Errors & Troubleshooting
+
+FlexiFlow errors follow a structured format: **What / Why / Fix / Context**.
+
+### Error Format
+
+Every FlexiFlow error includes:
+
+| Field | Purpose |
+|-------|---------|
+| **What** | What went wrong (first line) |
+| **Why** | Explanation of the cause |
+| **Fix** | Actionable guidance to resolve |
+| **Context** | Debugging metadata (paths, types, values) |
+
+### Example Errors
+
+**State not found:**
+
+```
+Unknown state 'BadState' not found in registry.
+Why: The state name was not registered. Available: InitialState, ProcessingRequest, AwaitingConfirmation (+2 more)
+Fix: Check spelling or register the state with DEFAULT_REGISTRY.register() before use.
+Context: state_name='BadState'
+```
+
+**Config error:**
+
+```
+Missing required field 'name' in config.
+Why: The configuration file is missing a required field.
+Fix: Add 'name: your_component_name' to the config file.
+Context: path='config.yaml'
+```
+
+**Import error:**
+
+```
+Invalid dotted path 'mypkg.states.MyState'.
+Why: Dotted paths must use ':' to separate module from symbol.
+Fix: Use format 'module.path:ClassName' (e.g., 'mypkg.states:MyState').
+Context: dotted_path='mypkg.states.MyState'
+```
+
+### Exception Hierarchy
+
+```
+FlexiFlowError (base)
+├── ConfigError      # Configuration validation failures
+├── StateError       # State registry/machine errors
+├── PersistenceError # JSON/SQLite persistence errors
+└── ImportError_     # Dotted path import failures
+```
+
+All exceptions inherit from `FlexiFlowError`, so you can catch broadly or specifically:
+
+```python
+from flexiflow import FlexiFlowError, StateError
+
+try:
+    sm = StateMachine.from_name("BadState")
+except StateError as e:
+    print(f"State issue: {e}")
+except FlexiFlowError as e:
+    print(f"FlexiFlow error: {e}")
+```
+
+### Reporting Issues
+
+When filing a GitHub issue, **paste the full error message** including the Context line. This helps us reproduce and fix the problem faster.

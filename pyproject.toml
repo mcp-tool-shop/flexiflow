@@ -1,6 +1,6 @@
 [project]
 name = "flexiflow"
-version = "0.2.0"
+version = "0.3.0"
 description = "A small async component engine with events, state machines, and a minimal CLI."
 requires-python = ">=3.10"
 dependencies = ["PyYAML>=6.0"]

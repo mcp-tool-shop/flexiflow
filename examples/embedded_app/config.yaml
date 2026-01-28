@@ -1,0 +1,15 @@
+# Example: Embedded app with custom states and SQLite persistence
+name: job_processor
+
+# Register all custom states up-front (state packs)
+states:
+  Idle: "states:Idle"
+  Processing: "states:Processing"
+  Complete: "states:Complete"
+  Failed: "states:Failed"
+
+initial_state: Idle
+
+rules:
+  - max_retries: 3
+  - timeout_seconds: 30

@@ -257,3 +257,75 @@ from flexiflow.extras import prune_snapshots_sqlite
 # Keep only the 10 most recent snapshots
 deleted = prune_snapshots_sqlite(conn, "my_component", keep_last=10)
 ```
+
+## Examples
+
+See [`examples/embedded_app/`](examples/embedded_app/) for a complete working example showing:
+
+- Custom states with state packs
+- SQLite persistence with automatic snapshots on state change
+- Observability event subscriptions
+- Retention management with pruning
+
+## Cookbook
+
+### Embedded Usage Pattern
+
+```python
+import sqlite3
+from flexiflow.component import AsyncComponent
+from flexiflow.config_loader import ConfigLoader
+from flexiflow.engine import FlexiFlowEngine
+from flexiflow.state_machine import StateMachine
+from flexiflow.extras import (
+    ComponentSnapshot,
+    load_latest_snapshot_sqlite,
+    save_snapshot_sqlite,
+    prune_snapshots_sqlite,
+)
+
+# Load config (registers custom states)
+config = ConfigLoader.load_component_config("config.yaml")
+conn = sqlite3.connect("state.db")
+engine = FlexiFlowEngine()
+
+# Restore or create component
+snapshot = load_latest_snapshot_sqlite(conn, config.name)
+if snapshot:
+    component = AsyncComponent(
+        name=snapshot.name,
+        rules=list(snapshot.rules),
+        state_machine=StateMachine.from_name(snapshot.current_state),
+    )
+else:
+    component = AsyncComponent(
+        name=config.name,
+        rules=list(config.rules),
+        state_machine=StateMachine.from_name(config.initial_state),
+    )
+
+engine.register(component)
+
+# Save on every state change
+async def on_state_changed(data):
+    snapshot = ComponentSnapshot(
+        name=data["component"],
+        current_state=data["to_state"],
+        rules=component.rules,
+        metadata={},
+    )
+    save_snapshot_sqlite(conn, snapshot)
+    prune_snapshots_sqlite(conn, data["component"], keep_last=50)
+
+await engine.event_bus.subscribe("state.changed", "persister", on_state_changed)
+```
+
+### JSON vs SQLite Persistence
+
+| Feature | JSON | SQLite |
+|---------|------|--------|
+| Single file | ✅ | ✅ |
+| History | ❌ (overwrites) | ✅ (appends) |
+| Retention | N/A | `prune_snapshots_sqlite()` |
+| Restore | `load_snapshot()` | `load_latest_snapshot_sqlite()` |
+| Best for | Dev/debugging | Production |

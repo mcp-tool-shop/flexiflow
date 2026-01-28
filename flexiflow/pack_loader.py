@@ -249,8 +249,10 @@ def load_packs(
         ctx = ErrorContext().add("has_states", True).add("has_packs", True)
         raise ConfigError(
             "Cannot specify both 'states' and 'packs'",
-            why="The legacy 'states:' mapping and new 'packs:' list are mutually exclusive.",
-            fix="Use either 'states:' (legacy) or 'packs:' (recommended), not both.",
+            why="The legacy 'states:' mapping and new 'packs:' list are mutually exclusive. "
+            "Both define state sources, creating ambiguity about which states to use.",
+            fix="Remove one: keep 'states:' for simple configs, or migrate to 'packs:' "
+            "by wrapping your states in a StatePack class.",
             context=ctx,
         )
 

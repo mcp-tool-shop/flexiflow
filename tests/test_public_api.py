@@ -38,6 +38,31 @@ def test_registry_imports_from_top_level():
     assert isinstance(DEFAULT_REGISTRY, StateRegistry)
 
 
+def test_statepack_types_from_top_level():
+    """StatePack types are importable from flexiflow directly."""
+    from flexiflow import StatePack, StateSpec, TransitionSpec
+
+    # StatePack is a Protocol
+    assert StatePack.__name__ == "StatePack"
+
+    # StateSpec and TransitionSpec are dataclasses
+    assert StateSpec.__name__ == "StateSpec"
+    assert TransitionSpec.__name__ == "TransitionSpec"
+
+    # Can create instances
+    class DummyState:
+        pass
+
+    spec = StateSpec(DummyState, "test description")
+    assert spec.state_class is DummyState
+    assert spec.description == "test description"
+
+    trans = TransitionSpec("A", "msg", "B")
+    assert trans.from_state == "A"
+    assert trans.on_message == "msg"
+    assert trans.to_state == "B"
+
+
 def test_version_available():
     """Version string is accessible."""
     import flexiflow

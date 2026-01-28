@@ -52,13 +52,10 @@ __all__ = [
     # Config
     "ConfigLoader",
     "ComponentConfig",
-    # StatePacks
+    # StatePacks (public types for users defining packs)
     "StatePack",
     "StateSpec",
     "TransitionSpec",
-    "MappingPack",
-    "load_packs",
-    "collect_provided_keys",
     # Registry (advanced)
     "StateRegistry",
     "DEFAULT_REGISTRY",
@@ -73,5 +70,9 @@ __all__ = [
     "ConfigExplanation",
     "Diagnostic",
 ]
+
+# Internal imports available but not in __all__:
+# - load_packs, collect_provided_keys: internal pack loading machinery
+# - MappingPack: internal adapter for legacy states: dict format
 
 __version__ = "0.3.3"

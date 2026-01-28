@@ -211,3 +211,49 @@ restored = restore_component(snapshot, engine)
 - Event subscriptions
 - Handler functions
 - Logger/event bus references (re-injected on restore)
+
+### SQLite Persistence
+
+For production use cases needing history and durability, use the SQLite adapter:
+
+```python
+import sqlite3
+from flexiflow.extras import (
+    save_snapshot_sqlite,
+    load_latest_snapshot_sqlite,
+    list_snapshots_sqlite,
+)
+from flexiflow.extras import ComponentSnapshot
+
+conn = sqlite3.connect("state.db")
+
+# Save a snapshot
+snapshot = ComponentSnapshot(
+    name="my_component",
+    current_state="AwaitingConfirmation",
+    rules=[{"key": "value"}],
+    metadata={"version": "1.0"},
+)
+row_id = save_snapshot_sqlite(conn, snapshot)
+
+# Load the latest snapshot for a component
+latest = load_latest_snapshot_sqlite(conn, "my_component")
+
+# List snapshot history
+history = list_snapshots_sqlite(conn, "my_component", limit=10)
+```
+
+The SQLite adapter:
+- Uses the same `ComponentSnapshot` model as JSON persistence
+- Stores full history (not just latest state)
+- Returns `None` for missing components (not an exception)
+- Raises `ValueError` for corrupt JSON in stored rows
+
+**Retention**: Snapshots accumulate indefinitely. Use `prune_snapshots_sqlite()` to clean up:
+
+```python
+from flexiflow.extras import prune_snapshots_sqlite
+
+# Keep only the 10 most recent snapshots
+deleted = prune_snapshots_sqlite(conn, "my_component", keep_last=10)
+```

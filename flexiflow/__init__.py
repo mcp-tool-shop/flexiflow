@@ -38,6 +38,7 @@ from .errors import (
     PersistenceError,
     StateError,
 )
+from .explain import ConfigExplanation, Diagnostic, explain
 from .state_machine import DEFAULT_REGISTRY, State, StateRegistry, StateMachine
 
 __all__ = [
@@ -58,6 +59,10 @@ __all__ = [
     "StateError",
     "PersistenceError",
     "ImportError_",
+    # Introspection
+    "explain",
+    "ConfigExplanation",
+    "Diagnostic",
 ]
 
 __version__ = "0.3.2"

@@ -400,3 +400,70 @@ except FlexiFlowError as e:
 ### Reporting Issues
 
 When filing a GitHub issue, **paste the full error message** including the Context line. This helps us reproduce and fix the problem faster.
+
+## Config Introspection
+
+Use `explain()` to validate a config file before loading it. This helps catch errors early and understand what FlexiFlow will do with your config.
+
+```python
+from flexiflow import explain
+
+result = explain("config.yaml")
+
+if result.is_valid:
+    print("Config is valid!")
+    print(f"Component: {result.name}")
+    print(f"Initial state: {result.initial_state}")
+    print(f"Rules: {result.rules_count}")
+else:
+    print("Config has errors:")
+    for error in result.errors:
+        print(f"  - {error.what}")
+```
+
+### What explain() Does
+
+- Parses the YAML and validates structure
+- Resolves all dotted paths (without registering states)
+- Checks that initial_state exists
+- Lists built-in and custom states
+- Collects warnings and errors
+
+### What explain() Does NOT Do
+
+- Register states in the global registry
+- Create components or state machines
+- Raise exceptions (errors are collected, not thrown)
+
+### Human-Readable Output
+
+Use `result.format()` for a formatted explanation:
+
+```python
+result = explain("config.yaml")
+print(result.format())
+```
+
+Output:
+```
+FlexiFlow Config Explanation
+========================================
+Source: config.yaml
+
+Component:
+  name: my_component
+  initial_state: InitialState
+  rules: 3 rule(s)
+
+States:
+  ✓ CustomState: mypkg.states:CustomState
+  Built-in: AwaitingConfirmation, ErrorHandling, InitialState, ProcessingRequest
+
+Warnings:
+  ⚠ No rules defined
+    Fix: Add rules if your component needs them.
+
+Status: ✓ Valid - config will load successfully
+```
+
+This is especially useful for debugging CI failures or validating configs before deployment.

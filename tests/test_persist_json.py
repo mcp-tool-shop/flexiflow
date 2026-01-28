@@ -7,15 +7,16 @@ from pathlib import Path
 
 import pytest
 
+from flexiflow import PersistenceError, StateError
 from flexiflow.component import AsyncComponent
 from flexiflow.engine import FlexiFlowEngine
-from flexiflow.state_machine import StateMachine
 from flexiflow.extras.persist_json import (
-    save_component,
+    ComponentSnapshot,
     load_snapshot,
     restore_component,
-    ComponentSnapshot,
+    save_component,
 )
+from flexiflow.state_machine import StateMachine
 
 
 async def test_roundtrip_save_load(tmp_path: Path):
@@ -74,31 +75,31 @@ def test_load_file_not_found(tmp_path: Path):
 
 
 def test_load_invalid_json(tmp_path: Path):
-    """load_snapshot raises ValueError for invalid JSON."""
+    """load_snapshot raises PersistenceError for invalid JSON."""
     state_file = tmp_path / "bad.json"
     state_file.write_text("not valid json {", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Invalid JSON"):
+    with pytest.raises(PersistenceError, match="Invalid JSON"):
         load_snapshot(state_file)
 
 
 def test_load_missing_required_fields(tmp_path: Path):
-    """load_snapshot raises ValueError for missing required fields."""
+    """load_snapshot raises PersistenceError for missing required fields."""
     state_file = tmp_path / "incomplete.json"
 
     # Missing 'name'
     state_file.write_text('{"current_state": "InitialState"}', encoding="utf-8")
-    with pytest.raises(ValueError, match="missing required field: 'name'"):
+    with pytest.raises(PersistenceError, match="missing"):
         load_snapshot(state_file)
 
     # Missing 'current_state'
     state_file.write_text('{"name": "test"}', encoding="utf-8")
-    with pytest.raises(ValueError, match="missing required field: 'current_state'"):
+    with pytest.raises(PersistenceError, match="missing"):
         load_snapshot(state_file)
 
 
 def test_restore_unknown_state_errors(tmp_path: Path):
-    """restore_component raises ValueError for unknown state."""
+    """restore_component raises StateError for unknown state."""
     state_file = tmp_path / "unknown_state.json"
     state_file.write_text(
         json.dumps({
@@ -113,7 +114,7 @@ def test_restore_unknown_state_errors(tmp_path: Path):
     snapshot = load_snapshot(state_file)
     engine = FlexiFlowEngine()
 
-    with pytest.raises(ValueError, match="not found in registry"):
+    with pytest.raises(StateError, match="Unknown state"):
         restore_component(snapshot, engine)
 
 

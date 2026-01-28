@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Tuple, Type
 
+from .errors import state_not_found
+
 Message = Dict[str, Any]
 
 
@@ -24,7 +26,7 @@ class StateRegistry:
     def create(self, name: str) -> State:
         state_cls = self._states.get(name)
         if not state_cls:
-            raise ValueError(f"Unknown state '{name}'. Valid: {list(self._states)}")
+            raise state_not_found(name, self.names())
         return state_cls()
 
     def names(self) -> list[str]:

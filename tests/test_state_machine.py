@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from flexiflow import StateError
 from flexiflow.state_machine import StateMachine, StateRegistry, State
 
 
@@ -92,8 +93,8 @@ async def test_confirm_without_correct_content_fails():
 
 
 def test_registry_unknown_state_raises():
-    """Requesting unknown state from registry raises ValueError."""
-    with pytest.raises(ValueError, match="Unknown state"):
+    """Requesting unknown state from registry raises StateError."""
+    with pytest.raises(StateError, match="Unknown state"):
         StateMachine.from_name("NonExistentState")
 
 
@@ -111,5 +112,5 @@ def test_custom_registry_isolation():
     assert sm.current_state.__class__.__name__ == "CustomState"
 
     # Default registry shouldn't have it
-    with pytest.raises(ValueError, match="Unknown state"):
+    with pytest.raises(StateError, match="Unknown state"):
         StateMachine.from_name("CustomState")

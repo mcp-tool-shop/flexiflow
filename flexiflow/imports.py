@@ -5,6 +5,12 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
+from .errors import (
+    import_invalid_format,
+    import_module_not_found,
+    import_symbol_not_found,
+)
+
 
 def load_symbol(dotted: str) -> Any:
     """
@@ -17,33 +23,25 @@ def load_symbol(dotted: str) -> Any:
         The loaded symbol (class, function, etc.)
 
     Raises:
-        ValueError: If the format is invalid, module can't be imported,
-                    or symbol doesn't exist in the module.
+        ImportError_: If the format is invalid, module can't be imported,
+                      or symbol doesn't exist in the module.
     """
     if ":" not in dotted:
-        raise ValueError(
-            f"Invalid dotted path '{dotted}'. Expected format 'module.path:SymbolName'."
-        )
+        raise import_invalid_format(dotted)
 
     module_path, symbol_name = dotted.split(":", 1)
     module_path = module_path.strip()
     symbol_name = symbol_name.strip()
 
     if not module_path or not symbol_name:
-        raise ValueError(
-            f"Invalid dotted path '{dotted}'. Expected format 'module.path:SymbolName'."
-        )
+        raise import_invalid_format(dotted)
 
     try:
         module = importlib.import_module(module_path)
-    except Exception as e:
-        raise ValueError(
-            f"Failed to import module '{module_path}' from '{dotted}': {e}"
-        ) from None
+    except Exception:
+        raise import_module_not_found(module_path, dotted) from None
 
     try:
         return getattr(module, symbol_name)
     except AttributeError:
-        raise ValueError(
-            f"Module '{module_path}' has no symbol '{symbol_name}' (from '{dotted}')."
-        ) from None
+        raise import_symbol_not_found(module_path, symbol_name, dotted) from None

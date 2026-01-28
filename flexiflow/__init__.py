@@ -31,6 +31,13 @@ For config-driven usage:
 from .component import AsyncComponent
 from .config_loader import ComponentConfig, ConfigLoader
 from .engine import FlexiFlowEngine
+from .errors import (
+    ConfigError,
+    FlexiFlowError,
+    ImportError_,
+    PersistenceError,
+    StateError,
+)
 from .state_machine import DEFAULT_REGISTRY, State, StateRegistry, StateMachine
 
 __all__ = [
@@ -45,6 +52,12 @@ __all__ = [
     # Registry (advanced)
     "StateRegistry",
     "DEFAULT_REGISTRY",
+    # Errors
+    "FlexiFlowError",
+    "ConfigError",
+    "StateError",
+    "PersistenceError",
+    "ImportError_",
 ]
 
 __version__ = "0.3.1"

@@ -8,12 +8,13 @@ from datetime import datetime, timezone
 
 import pytest
 
+from flexiflow import PersistenceError
 from flexiflow.extras.persist_json import ComponentSnapshot
 from flexiflow.extras.persist_sqlite import (
-    save_snapshot,
-    load_latest_snapshot,
     list_snapshots,
+    load_latest_snapshot,
     prune_snapshots,
+    save_snapshot,
 )
 
 
@@ -143,7 +144,7 @@ def test_invalid_json_raises_valueerror(conn: sqlite3.Connection):
     )
     conn.commit()
 
-    with pytest.raises(ValueError, match="Invalid JSON"):
+    with pytest.raises(PersistenceError, match="Invalid JSON"):
         load_latest_snapshot(conn, "corrupt")
 
 

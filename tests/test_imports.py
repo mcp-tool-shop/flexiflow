@@ -7,8 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from flexiflow.imports import load_symbol
+from flexiflow import ConfigError, ImportError_, StateError
 from flexiflow.config_loader import ConfigLoader
+from flexiflow.imports import load_symbol
 from flexiflow.state_machine import DEFAULT_REGISTRY, StateMachine
 
 
@@ -22,29 +23,29 @@ def test_load_symbol_valid():
 
 
 def test_load_symbol_missing_colon():
-    """load_symbol raises ValueError if ':' is missing."""
-    with pytest.raises(ValueError, match="Expected format"):
+    """load_symbol raises ImportError_ if ':' is missing."""
+    with pytest.raises(ImportError_, match="Invalid dotted path"):
         load_symbol("fixture_states.FixtureInitial")
 
 
 def test_load_symbol_empty_parts():
-    """load_symbol raises ValueError if module or symbol is empty."""
-    with pytest.raises(ValueError, match="Expected format"):
+    """load_symbol raises ImportError_ if module or symbol is empty."""
+    with pytest.raises(ImportError_, match="Invalid dotted path"):
         load_symbol(":FixtureInitial")
 
-    with pytest.raises(ValueError, match="Expected format"):
+    with pytest.raises(ImportError_, match="Invalid dotted path"):
         load_symbol("fixture_states:")
 
 
 def test_load_symbol_module_not_found():
-    """load_symbol raises ValueError if module doesn't exist."""
-    with pytest.raises(ValueError, match="Failed to import module"):
+    """load_symbol raises ImportError_ if module doesn't exist."""
+    with pytest.raises(ImportError_, match="Module not found"):
         load_symbol("nonexistent.module:SomeClass")
 
 
 def test_load_symbol_symbol_not_found():
-    """load_symbol raises ValueError if symbol doesn't exist in module."""
-    with pytest.raises(ValueError, match="has no symbol"):
+    """load_symbol raises ImportError_ if symbol doesn't exist in module."""
+    with pytest.raises(ImportError_, match="not found"):
         load_symbol("fixture_states:DoesNotExist")
 
 
@@ -92,12 +93,12 @@ def test_dotted_initial_state_invalid_symbol_errors(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="has no symbol"):
+    with pytest.raises(ImportError_, match="not found"):
         ConfigLoader.load_component_config(config_file)
 
 
 def test_dotted_initial_state_not_a_state_errors(tmp_path: Path):
-    """ConfigLoader raises ValueError if symbol is not a State subclass."""
+    """ConfigLoader raises ImportError_ if symbol is not a State subclass."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
         textwrap.dedent(
@@ -110,7 +111,7 @@ def test_dotted_initial_state_not_a_state_errors(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="must point to a State subclass"):
+    with pytest.raises(ImportError_, match="Not a State subclass"):
         ConfigLoader.load_component_config(config_file)
 
 
@@ -234,7 +235,7 @@ def test_states_mapping_missing_colon_errors(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="must be dotted paths"):
+    with pytest.raises(ConfigError, match="Invalid dotted path"):
         ConfigLoader.load_component_config(config_file)
 
 
@@ -254,7 +255,7 @@ def test_states_mapping_not_a_state_errors(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="must point to a State subclass"):
+    with pytest.raises(ImportError_, match="Not a State subclass"):
         ConfigLoader.load_component_config(config_file)
 
 
@@ -274,7 +275,7 @@ def test_states_mapping_invalid_type_errors(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="'states' must be a mapping"):
+    with pytest.raises(ConfigError, match="wrong type"):
         ConfigLoader.load_component_config(config_file)
 
 
@@ -294,5 +295,5 @@ def test_states_mapping_non_string_key_errors(tmp_path: Path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="must be string: string"):
+    with pytest.raises(ConfigError, match="Invalid states entry"):
         ConfigLoader.load_component_config(config_file)

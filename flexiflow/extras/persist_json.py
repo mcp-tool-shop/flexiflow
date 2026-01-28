@@ -7,6 +7,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from ..errors import (
+    ErrorContext,
+    PersistenceError,
+    persistence_invalid_json,
+    persistence_missing_field,
+    state_not_found,
+)
+
 
 @dataclass(frozen=True)
 class ComponentSnapshot:
@@ -60,9 +68,10 @@ def load_snapshot(path: str | Path) -> ComponentSnapshot:
 
     Raises:
         FileNotFoundError: If file doesn't exist
-        ValueError: If JSON is invalid or missing required fields
+        PersistenceError: If JSON is invalid or missing required fields
     """
     p = Path(path)
+    path_str = str(path)
 
     if not p.exists():
         raise FileNotFoundError(f"State file not found: {path}")
@@ -71,27 +80,51 @@ def load_snapshot(path: str | Path) -> ComponentSnapshot:
         with p.open("r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in state file '{path}': {e}") from None
+        raise persistence_invalid_json(path_str, str(e)) from None
 
     # Validate required fields
     if not isinstance(data, dict):
-        raise ValueError(f"State file must contain a JSON object, got {type(data).__name__}")
+        ctx = ErrorContext()
+        ctx.add("path", path_str)
+        ctx.add("got_type", type(data).__name__)
+        raise PersistenceError(
+            "State file must contain a JSON object",
+            why=f"Expected a JSON object, but got {type(data).__name__}.",
+            fix="Ensure the file contains a JSON object with 'name' and 'current_state' fields.",
+            context=ctx,
+        )
 
     name = data.get("name")
     if not name or not isinstance(name, str):
-        raise ValueError("State file missing required field: 'name'")
+        raise persistence_missing_field(path_str, "name")
 
     current_state = data.get("current_state")
     if not current_state or not isinstance(current_state, str):
-        raise ValueError("State file missing required field: 'current_state'")
+        raise persistence_missing_field(path_str, "current_state")
 
     rules = data.get("rules", [])
     if not isinstance(rules, list):
-        raise ValueError("'rules' must be a list")
+        ctx = ErrorContext()
+        ctx.add("path", path_str)
+        ctx.add("got_type", type(rules).__name__)
+        raise PersistenceError(
+            "State file 'rules' field has wrong type",
+            why=f"Expected a list, but got {type(rules).__name__}.",
+            fix="Change 'rules' to be a list, or remove it to use default.",
+            context=ctx,
+        )
 
     metadata = data.get("metadata", {})
     if not isinstance(metadata, dict):
-        raise ValueError("'metadata' must be a dict")
+        ctx = ErrorContext()
+        ctx.add("path", path_str)
+        ctx.add("got_type", type(metadata).__name__)
+        raise PersistenceError(
+            "State file 'metadata' field has wrong type",
+            why=f"Expected a dict, but got {type(metadata).__name__}.",
+            fix="Change 'metadata' to be a dict, or remove it to use default.",
+            context=ctx,
+        )
 
     return ComponentSnapshot(
         name=name,
@@ -118,19 +151,16 @@ def restore_component(
         The restored AsyncComponent
 
     Raises:
-        ValueError: If the state class is not found in the registry
+        StateError: If the state class is not found in the registry
     """
     from ..component import AsyncComponent
-    from ..state_machine import StateMachine, DEFAULT_REGISTRY
+    from ..state_machine import DEFAULT_REGISTRY, StateMachine
 
     reg = registry or DEFAULT_REGISTRY
 
     # Validate state exists in registry
     if snapshot.current_state not in reg.names():
-        raise ValueError(
-            f"Cannot restore: state '{snapshot.current_state}' not found in registry. "
-            f"Available states: {list(reg.names())}"
-        )
+        raise state_not_found(snapshot.current_state, reg.names())
 
     component = AsyncComponent(
         name=snapshot.name,

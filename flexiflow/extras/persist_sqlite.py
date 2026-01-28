@@ -111,7 +111,18 @@ def load_latest_snapshot(
     try:
         data = json.loads(row[0])
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in snapshot for '{component_name}': {e}") from None
+        from ..errors import ErrorContext, PersistenceError
+
+        ctx = ErrorContext()
+        ctx.add("component_name", component_name)
+        ctx.add("error", str(e))
+        raise PersistenceError(
+            f"Invalid JSON in snapshot for '{component_name}'",
+            why="The database contains a snapshot with malformed JSON.",
+            fix="Delete the corrupted row from flexiflow_snapshots table, "
+            "or use prune_snapshots to clean up old entries.",
+            context=ctx,
+        ) from None
 
     return ComponentSnapshot(
         name=data["name"],

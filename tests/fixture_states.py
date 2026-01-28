@@ -24,3 +24,28 @@ class AnotherFixtureState(State):
 class NotAState:
     """This is not a State subclass, used for error testing."""
     pass
+
+
+# StatePack fixture for testing pack loader
+class FixturePack:
+    """A StatePack implementation for testing dotted path loading."""
+
+    @property
+    def name(self) -> str:
+        return "fixture"
+
+    def provides(self) -> dict:
+        from flexiflow.statepack import StateSpec
+        return {
+            "FixtureState": StateSpec(FixtureInitial, "A test fixture state"),
+        }
+
+    def transitions(self) -> list:
+        return []
+
+    def depends_on(self) -> set:
+        return set()
+
+
+# Pre-instantiated pack for testing instance loading
+fixture_pack_instance = FixturePack()

@@ -39,7 +39,9 @@ from .errors import (
     StateError,
 )
 from .explain import ConfigExplanation, Diagnostic, explain
+from .pack_loader import collect_provided_keys, load_packs
 from .state_machine import DEFAULT_REGISTRY, State, StateRegistry, StateMachine
+from .statepack import MappingPack, StateSpec, StatePack, TransitionSpec
 
 __all__ = [
     # Core
@@ -50,6 +52,13 @@ __all__ = [
     # Config
     "ConfigLoader",
     "ComponentConfig",
+    # StatePacks
+    "StatePack",
+    "StateSpec",
+    "TransitionSpec",
+    "MappingPack",
+    "load_packs",
+    "collect_provided_keys",
     # Registry (advanced)
     "StateRegistry",
     "DEFAULT_REGISTRY",

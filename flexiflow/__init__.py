@@ -39,7 +39,9 @@ from .errors import (
     StateError,
 )
 from .explain import ConfigExplanation, Diagnostic, explain
+from .pack_loader import collect_provided_keys, load_packs
 from .state_machine import DEFAULT_REGISTRY, State, StateRegistry, StateMachine
+from .statepack import MappingPack, StateSpec, StatePack, TransitionSpec
 
 __all__ = [
     # Core
@@ -50,6 +52,10 @@ __all__ = [
     # Config
     "ConfigLoader",
     "ComponentConfig",
+    # StatePacks (public types for users defining packs)
+    "StatePack",
+    "StateSpec",
+    "TransitionSpec",
     # Registry (advanced)
     "StateRegistry",
     "DEFAULT_REGISTRY",
@@ -64,5 +70,9 @@ __all__ = [
     "ConfigExplanation",
     "Diagnostic",
 ]
+
+# Internal imports available but not in __all__:
+# - load_packs, collect_provided_keys: internal pack loading machinery
+# - MappingPack: internal adapter for legacy states: dict format
 
 __version__ = "0.3.3"

@@ -28,6 +28,24 @@ class ConfigLoader:
         return data
 
     @staticmethod
+    def _register_dotted_state(dotted_path: str) -> str:
+        """
+        Load a state class from a dotted path and register it.
+
+        Returns the normalized class name (registry key).
+        """
+        state_cls = load_symbol(dotted_path)
+
+        if not isinstance(state_cls, type) or not issubclass(state_cls, State):
+            raise ValueError(
+                f"State path must point to a State subclass, got {state_cls!r}"
+            )
+
+        # Register under class name and return normalized name
+        DEFAULT_REGISTRY.register(state_cls.__name__, state_cls)
+        return state_cls.__name__
+
+    @staticmethod
     def load_component_config(path: str | Path) -> ComponentConfig:
         data = ConfigLoader.load_yaml(path)
 
@@ -41,23 +59,31 @@ class ConfigLoader:
         if not isinstance(rules, list):
             raise ValueError("'rules' must be a list")
 
+        # Process states: mapping first (register all dotted states up-front)
+        states_mapping = data.get("states", {})
+        if states_mapping is not None and not isinstance(states_mapping, dict):
+            raise ValueError("'states' must be a mapping")
+
+        if states_mapping:
+            for key, dotted_path in states_mapping.items():
+                if not isinstance(key, str) or not isinstance(dotted_path, str):
+                    raise ValueError(
+                        f"'states' entries must be string: string, got {key!r}: {dotted_path!r}"
+                    )
+                if ":" not in dotted_path:
+                    raise ValueError(
+                        f"'states' values must be dotted paths (module:Class), got {dotted_path!r}"
+                    )
+                ConfigLoader._register_dotted_state(dotted_path)
+
+        # Process initial_state (may reference a state from the mapping or be a dotted path itself)
         initial_state = data.get("initial_state", "InitialState")
         if not isinstance(initial_state, str):
             raise ValueError("'initial_state' must be a string")
 
         # Handle dotted path imports (e.g., "mypkg.states:MyState")
         if ":" in initial_state:
-            state_cls = load_symbol(initial_state)
-
-            # Validate it's a State subclass
-            if not isinstance(state_cls, type) or not issubclass(state_cls, State):
-                raise ValueError(
-                    f"initial_state must point to a State subclass, got {state_cls!r}"
-                )
-
-            # Register under class name and normalize
-            DEFAULT_REGISTRY.register(state_cls.__name__, state_cls)
-            initial_state = state_cls.__name__
+            initial_state = ConfigLoader._register_dotted_state(initial_state)
 
         return ComponentConfig(name=name, rules=rules, initial_state=initial_state)
 

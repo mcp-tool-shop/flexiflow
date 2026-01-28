@@ -164,6 +164,26 @@ initial_state: "mypkg.states:MyInitialState"
 
 The class must be a `State` subclass. It will be auto-registered under its class name.
 
+### State Packs
+
+For components that need multiple custom states, use the `states:` mapping to register them all up-front:
+
+```yaml
+name: my_component
+states:
+  InitialState: "mypkg.states:InitialState"
+  Processing: "mypkg.states:ProcessingState"
+  Complete: "mypkg.states:CompleteState"
+initial_state: InitialState
+rules: []
+```
+
+The mapping:
+- Keys are the registry names (used for lookups)
+- Values are dotted paths (`module:ClassName`)
+- All states are registered before `initial_state` is resolved
+- `initial_state` can reference a key from the mapping or be a dotted path itself
+
 ## Persistence
 
 Save and restore component state with the JSON persistence adapter:

@@ -134,3 +134,165 @@ def test_plain_initial_state_still_works(tmp_path: Path):
     # Can still create from default registry
     sm = StateMachine.from_name(cfg.initial_state)
     assert sm.current_state.__class__.__name__ == "InitialState"
+
+
+# --- states: mapping tests (state packs) ---
+
+
+def test_states_mapping_registers_all_states(tmp_path: Path):
+    """states: mapping registers all dotted states up-front."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        textwrap.dedent(
+            """\
+            name: test_component
+            rules: []
+            states:
+              FixtureInitial: "fixture_states:FixtureInitial"
+              AnotherFixtureState: "fixture_states:AnotherFixtureState"
+            initial_state: FixtureInitial
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = ConfigLoader.load_component_config(config_file)
+
+    # Both states registered
+    assert "FixtureInitial" in DEFAULT_REGISTRY.names()
+    assert "AnotherFixtureState" in DEFAULT_REGISTRY.names()
+
+    # initial_state normalized (not a dotted path, just the class name)
+    assert cfg.initial_state == "FixtureInitial"
+
+    # Can create state machines from both
+    sm1 = StateMachine.from_name("FixtureInitial")
+    assert sm1.current_state.__class__.__name__ == "FixtureInitial"
+
+    sm2 = StateMachine.from_name("AnotherFixtureState")
+    assert sm2.current_state.__class__.__name__ == "AnotherFixtureState"
+
+
+def test_states_mapping_with_dotted_initial_state(tmp_path: Path):
+    """states: mapping works with dotted initial_state."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        textwrap.dedent(
+            """\
+            name: test_component
+            rules: []
+            states:
+              FixtureInitial: "fixture_states:FixtureInitial"
+            initial_state: "fixture_states:AnotherFixtureState"
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = ConfigLoader.load_component_config(config_file)
+
+    # Both registered (one from mapping, one from initial_state)
+    assert "FixtureInitial" in DEFAULT_REGISTRY.names()
+    assert "AnotherFixtureState" in DEFAULT_REGISTRY.names()
+
+    # initial_state normalized to class name
+    assert cfg.initial_state == "AnotherFixtureState"
+
+
+def test_states_mapping_empty_allowed(tmp_path: Path):
+    """Empty states: mapping is allowed (no-op)."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        textwrap.dedent(
+            """\
+            name: test_component
+            rules: []
+            states: {}
+            initial_state: InitialState
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = ConfigLoader.load_component_config(config_file)
+    assert cfg.initial_state == "InitialState"
+
+
+def test_states_mapping_missing_colon_errors(tmp_path: Path):
+    """states: mapping values must contain ':' (dotted path format)."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        textwrap.dedent(
+            """\
+            name: test_component
+            rules: []
+            states:
+              BadState: "fixture_states.FixtureInitial"
+            initial_state: InitialState
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="must be dotted paths"):
+        ConfigLoader.load_component_config(config_file)
+
+
+def test_states_mapping_not_a_state_errors(tmp_path: Path):
+    """states: mapping rejects non-State subclasses."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        textwrap.dedent(
+            """\
+            name: test_component
+            rules: []
+            states:
+              NotAState: "fixture_states:NotAState"
+            initial_state: InitialState
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="must point to a State subclass"):
+        ConfigLoader.load_component_config(config_file)
+
+
+def test_states_mapping_invalid_type_errors(tmp_path: Path):
+    """states: must be a mapping, not a list or scalar."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        textwrap.dedent(
+            """\
+            name: test_component
+            rules: []
+            states:
+              - "fixture_states:FixtureInitial"
+            initial_state: InitialState
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="'states' must be a mapping"):
+        ConfigLoader.load_component_config(config_file)
+
+
+def test_states_mapping_non_string_key_errors(tmp_path: Path):
+    """states: mapping keys must be strings."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        textwrap.dedent(
+            """\
+            name: test_component
+            rules: []
+            states:
+              123: "fixture_states:FixtureInitial"
+            initial_state: InitialState
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="must be string: string"):
+        ConfigLoader.load_component_config(config_file)

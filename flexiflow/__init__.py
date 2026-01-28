@@ -76,4 +76,4 @@ __all__ = [
 # - MappingPack: internal adapter for legacy states: dict format
 # - PackInfo: internal dataclass for ConfigExplanation.packs
 
-__version__ = "0.3.3"
+__version__ = "0.4.0"

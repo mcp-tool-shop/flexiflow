@@ -4,12 +4,35 @@ version = "0.3.1"
 description = "A small async component engine with events, state machines, and a minimal CLI."
 requires-python = ">=3.10"
 dependencies = ["PyYAML>=6.0"]
+license = { text = "MIT" }
+license-files = ["LICENSE"]
+keywords = ["async", "event-bus", "state-machine", "component", "workflow", "orchestration"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/mcp-tool-shop/flexiflow"
+Repository = "https://github.com/mcp-tool-shop/flexiflow"
+Issues = "https://github.com/mcp-tool-shop/flexiflow/issues"
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.23",
   "coverage>=7.0",
+  "ruff>=0.11.0",
+  "mypy>=1.0.0",
+  "pip-audit>=2.0.0",
+  "pre-commit>=3.0.0",
 ]
 reload = ["watchfiles>=0.21"]
 api = ["fastapi>=0.110", "uvicorn>=0.27"]
@@ -20,3 +43,41 @@ flexiflow = "flexiflow.cli:main"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Gradually enable
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["flexiflow"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
